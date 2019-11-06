@@ -108,6 +108,15 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
   {
     for(int row = 1; row < (input -> height) - 1 ; row = row + 1)
     {
+      int acc0;
+      int acc1;
+      int acc2;
+      int acc3;
+      int acc4;
+      int acc5;
+      int acc6;
+      int acc7;
+      int acc8;
       for(int plane = 0; plane < 3; plane++)
       {
 
@@ -119,12 +128,14 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
             = output -> color[plane][row][col]
                + (input -> color[plane][row + i - 1][col + j - 1] 
               * filter -> get(i, j) );
-           }
-/*        }
+          }
+        }
+*/
           
 /*
 getSize() always returns 3, because all of the filters are 3X3 matricies. Since the two innermost for loops use getSize() for the loop limit, the innermost operation can be unrolled into 9 computations. Boats score = 61, Blocks score = 59
 */
+        /*
         output -> color[plane][row][col] = output -> color[plane][row][col] + (input -> color[plane][row - 1][col - 1] * filter -> get(0, 0));
         output -> color[plane][row][col] = output -> color[plane][row][col] + (input -> color[plane][row + 0][col - 1] * filter -> get(1, 0));
         output -> color[plane][row][col] = output -> color[plane][row][col] + (input -> color[plane][row + 1][col - 1] * filter -> get(2, 0));
@@ -136,19 +147,38 @@ getSize() always returns 3, because all of the filters are 3X3 matricies. Since 
         output -> color[plane][row][col] = output -> color[plane][row][col] + (input -> color[plane][row - 1][col + 1] * filter -> get(0, 2));
         output -> color[plane][row][col] = output -> color[plane][row][col] + (input -> color[plane][row + 0][col + 1] * filter -> get(1, 2));
         output -> color[plane][row][col] = output -> color[plane][row][col] + (input -> color[plane][row + 1][col + 1] * filter -> get(2, 2));
-	
-//output -> color[plane][row][col] = output -> color[plane][row][col] / filter -> getDivisor();
+        */
+          
+/*
+Remove dependencies, so that each sum can be completed in parallel (remove dependencies on 'output -> color[plane][row][col]'). Boats score = 65, Blocks score = 61
+*/          
+        acc0 = output -> color[plane][row][col] + (input -> color[plane][row - 1][col - 1] * filter -> get(0, 0));
+        acc1 = output -> color[plane][row][col] + (input -> color[plane][row + 0][col - 1] * filter -> get(1, 0));
+        acc2 = output -> color[plane][row][col] + (input -> color[plane][row + 1][col - 1] * filter -> get(2, 0));
+          
+        acc3 = output -> color[plane][row][col] + (input -> color[plane][row - 1][col + 0] * filter -> get(0, 1));
+        acc4 = output -> color[plane][row][col] + (input -> color[plane][row + 0][col + 0] * filter -> get(1, 1));
+        acc5 = output -> color[plane][row][col] + (input -> color[plane][row + 1][col + 0] * filter -> get(2, 1));
+          
+        acc6 = output -> color[plane][row][col] + (input -> color[plane][row - 1][col + 1] * filter -> get(0, 2));
+        acc7 = output -> color[plane][row][col] + (input -> color[plane][row + 0][col + 1] * filter -> get(1, 2));
+        acc8 = output -> color[plane][row][col] + (input -> color[plane][row + 1][col + 1] * filter -> get(2, 2));
+          
+        output -> color[plane][row][col] = acc0 + acc1 + acc2 + acc3 + acc4 + acc5 + acc6 + acc7 + acc8;
           
 //reduce function calls. Boats score = 63, Blocks score = 60
-    output -> color[plane][row][col] = output -> color[plane][row][col] / divisor;
+        //output -> color[plane][row][col] = output -> color[plane][row][col] / filter -> getDivisor();
+        output -> color[plane][row][col] = output -> color[plane][row][col] / divisor;
 
-	if ( output -> color[plane][row][col]  < 0 ) {
-	  output -> color[plane][row][col] = 0;
-	}
+        if (output -> color[plane][row][col]  < 0)
+        {
+          output -> color[plane][row][col] = 0;
+        }
 
-	if ( output -> color[plane][row][col]  > 255 ) { 
-	  output -> color[plane][row][col] = 255;
-	}
+        if (output -> color[plane][row][col]  > 255)
+        { 
+          output -> color[plane][row][col] = 255;
+        }
       }
     }
   }
