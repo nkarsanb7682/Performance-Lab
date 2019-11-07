@@ -104,7 +104,7 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
   int divisor = filter -> getDivisor(); //Reduce memory references, and function calls
 
   /*
-  Flipped is loop(col), with second loop(row). Array is stored as color[row][col][plane]. Now stride-1. Got this through trial and error, with switching around for loop statements. Boats score = 70, Blocks score = 71.
+  Flipped is loop(col), with second loop(row). Array is stored as color[row][col][plane]. Now stride-1. Got this through trial and error, with switching around for loop statements. Boats score = 70, Blocks score = 71
   */
   //for(int col = 1; col < (input -> width) - 1; col = col + 1)
   for(int row = 1; row < (input -> height) - 1 ; row = row + 1)
