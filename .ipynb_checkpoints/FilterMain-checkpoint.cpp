@@ -174,6 +174,7 @@ Remove dependencies, so that each sum can be completed in parallel (remove depen
         //output -> color[plane][row][col] = output -> color[plane][row][col] / filter -> getDivisor();
         output -> color[plane][row][col] = output -> color[plane][row][col] / divisor;
 
+         /*
         if (output -> color[plane][row][col]  < 0)
         {
           output -> color[plane][row][col] = 0;
@@ -183,6 +184,12 @@ Remove dependencies, so that each sum can be completed in parallel (remove depen
         { 
           output -> color[plane][row][col] = 255;
         }
+        */
+/*
+Remove branching. Branch misprediction is costly, because it adds more instructions(the instructions from incorrect address that the program jumps to). For ternary operator, evaluation, and aggisnment is done with one instruction, so program will not need to jump around. Boats score = , Blocks score = 
+*/
+          output -> color[plane][row][col] = (output -> color[plane][row][col]  < 0) ? 0 : (output -> color[plane][row][col]);
+          output -> color[plane][row][col] = (output -> color[plane][row][col]  > 255) ? 255 : (output -> color[plane][row][col]);
       }
     }
   }
