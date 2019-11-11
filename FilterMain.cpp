@@ -76,11 +76,19 @@ readFilter(string filename)
     int div;
     input >> div;
     filter -> setDivisor(div);
-    for (int i=0; i < size; i++) {
-      for (int j=0; j < size; j++) {
-	int value;
-	input >> value;
-	filter -> set(i,j,value);
+/*
+new Filter(size), size sets dim of the filter. All filters are 3X3 matricies. Fully unroll loops
+*/
+    for (int i=0; i < size; i++)
+    {
+      for (int j=0; j < size; j++)
+      {
+        int value;
+        input >> value;
+        filter -> set(i,j,value);
+        filter -> set(i,j,value);
+        filter -> set(i,j,value);
+
       }
     }
     return filter;
@@ -102,6 +110,9 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
   output -> width = input -> width; //Reduce memory references
   output -> height = input -> height; //Reduce memory references
   int divisor = filter -> getDivisor(); //Reduce memory references, and function calls
+  int arrayOfGetCalls[9] = {filter -> get(0, 0), filter -> get(1, 0), filter -> get(2, 0),
+                            filter -> get(0, 1), filter -> get(1, 1), filter -> get(2, 1),
+                            filter -> get(0, 2), filter -> get(1, 2), filter -> get(2, 2)}; //Store function calls in cache
 
   /*
   Flipped is loop(col), with second loop(row). Array is stored as color[row][col][plane]. Now stride-1. Got this through trial and error, with switching around for loop statements. Boats score = 70, Blocks score = 71
@@ -121,6 +132,10 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
       int acc6;
       int acc7;
       int acc8;
+      
+      /*
+      Tried to unroll this loop(plane), but score ended up being the same as before loop was unrolled.
+      */
       for(int plane = 0; plane < 3; plane++)
       {
 /*
@@ -174,6 +189,8 @@ Remove dependencies, so that each sum can be completed in parallel (remove depen
           
         output -> color[plane][row][col] = acc0 + acc1 + acc2 + acc3 + acc4 + acc5 + acc6 + acc7 + acc8;
         */
+        
+        /*
         acc0 = outputColor + (input -> color[plane][row - 1][col - 1] * filter -> get(0, 0));
         acc1 = outputColor + (input -> color[plane][row + 0][col - 1] * filter -> get(1, 0));
         acc2 = outputColor + (input -> color[plane][row + 1][col - 1] * filter -> get(2, 0));
@@ -185,6 +202,26 @@ Remove dependencies, so that each sum can be completed in parallel (remove depen
         acc6 = outputColor + (input -> color[plane][row - 1][col + 1] * filter -> get(0, 2));
         acc7 = outputColor + (input -> color[plane][row + 0][col + 1] * filter -> get(1, 2));
         acc8 = outputColor + (input -> color[plane][row + 1][col + 1] * filter -> get(2, 2));
+          
+        outputColor = acc0 + acc1 + acc2 + acc3 + acc4 + acc5 + acc6 + acc7 + acc8;
+        */
+          
+        
+/*
+By storing the get() function calls in an array, the values can be stored in the cache. Part of this idea came from Prashanth giving you the hint that the function calls could be moved outside of the for loop. Boats score = 78, Blocks score = 80
+*/
+          
+        acc0 = outputColor + (input -> color[plane][row - 1][col - 1] * arrayOfGetCalls[0]);
+        acc1 = outputColor + (input -> color[plane][row + 0][col - 1] * arrayOfGetCalls[1]);
+        acc2 = outputColor + (input -> color[plane][row + 1][col - 1] * arrayOfGetCalls[2]);
+          
+        acc3 = outputColor + (input -> color[plane][row - 1][col + 0] * arrayOfGetCalls[3]);
+        acc4 = outputColor + (input -> color[plane][row + 0][col + 0] * arrayOfGetCalls[4]);
+        acc5 = outputColor + (input -> color[plane][row + 1][col + 0] * arrayOfGetCalls[5]);
+          
+        acc6 = outputColor + (input -> color[plane][row - 1][col + 1] * arrayOfGetCalls[6]);
+        acc7 = outputColor + (input -> color[plane][row + 0][col + 1] * arrayOfGetCalls[7]);
+        acc8 = outputColor + (input -> color[plane][row + 1][col + 1] * arrayOfGetCalls[8]);
           
         outputColor = acc0 + acc1 + acc2 + acc3 + acc4 + acc5 + acc6 + acc7 + acc8;
           
