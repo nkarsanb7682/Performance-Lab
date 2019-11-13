@@ -100,6 +100,10 @@ readFilter(string filename)
 double
 applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
 {
+  /*
+  EXTRA OPTIMIZATION: changed -O0 to -O3, so that compiler would make optimizaitions on its own (did not make a difference in scores). Boats score = 89, Blocks score = 85.
+  Changed -O3 to -Ofast. -Ofast ignores cimpliancy rules, such as IEEE floating point standards, but also uses -O3 optimizations. Boats score = 98, Blocks score = 105
+  */
 
   long long cycStart, cycStop;
 
