@@ -76,9 +76,7 @@ readFilter(string filename)
     int div;
     input >> div;
     filter -> setDivisor(div);
-/*
-new Filter(size), size sets dim of the filter. All filters are 3X3 matricies. Fully unroll loops
-*/
+
     for (int i=0; i < size; i++)
     {
       for (int j=0; j < size; j++)
@@ -110,39 +108,50 @@ applyFilter(struct Filter *filter, cs1300bmp *input, cs1300bmp *output)
   output -> width = input -> width; //Reduce memory references
   output -> height = input -> height; //Reduce memory references
   int divisor = filter -> getDivisor(); //Reduce memory references, and function calls
+  
+  
   int arrayOfGetCalls[9] = {filter -> get(0, 0), filter -> get(1, 0), filter -> get(2, 0),
                             filter -> get(0, 1), filter -> get(1, 1), filter -> get(2, 1),
                             filter -> get(0, 2), filter -> get(1, 2), filter -> get(2, 2)}; //Store function calls in cache
 
+
+   /*
+   Used opemMP to paralellize loop. Boats score = 89, Blocks score = 85
+   */ 
+   #pragma omp parallel for collapse(2)
+    
+    
   /*
   Flipped is loop(col), with second loop(row). Array is stored as color[row][col][plane]. Now stride-1. Got this through trial and error, with switching around for loop statements. Boats score = 70, Blocks score = 71
   */
   //for(int col = 1; col < (input -> width) - 1; col = col + 1)
-  for(int row = 1; row < (input -> height) - 1 ; row = row + 1)
+  //for(int row = 1; row < (input -> height) - 1 ; row = row + 1)
+  for(int plane = 0; plane < 3; plane++)
   {
     //for(int row = 1; row < (input -> height) - 1 ; row = row + 1)
-    for(int col = 1; col < (input -> width) - 1; col = col + 1)
+    //for(int col = 1; col < (input -> width) - 1; col = col + 1)
+    for(int row = 1; row < (input -> height) - 1 ; row = row + 1)
     {
-      int acc0;
-      int acc1;
-      int acc2;
-      int acc3;
-      int acc4;
-      int acc5;
-      int acc6;
-      int acc7;
-      int acc8;
-      
       /*
-      Tried to unroll this loop(plane), but score ended up being the same as before loop was unrolled.
+      Tried to unroll this loop(plane), but score ended up being the same as before loop was unrolled. UPDATE: switching plane, and row loops made no difference in performance.
       */
-      for(int plane = 0; plane < 3; plane++)
+      //for(int plane = 0; plane < 3; plane++)
+      for(int col = 1; col < (input -> width) - 1; col = col + 1)
       {
+          int acc0;
+          int acc1;
+          int acc2;
+          int acc3;
+          int acc4;
+          int acc5;
+          int acc6;
+          int acc7;
+          int acc8;
 /*
 Get rid of unecessary memory references (variable is reassigned at last line of for loop). Boats score = 72, Blocks score = 73
 */
         int outputColor = 0;
-        //output -> color[plane][row][col] = 0;
+        output -> color[plane][row][col] = 0;
 
 /*      for (int j = 0; j < filter -> getSize(); j++) {
            for (int i = 0; i < filter -> getSize(); i++) {	
@@ -210,7 +219,6 @@ Remove dependencies, so that each sum can be completed in parallel (remove depen
 /*
 By storing the get() function calls in an array, the values can be stored in the cache. Part of this idea came from Prashanth giving you the hint that the function calls could be moved outside of the for loop. Boats score = 78, Blocks score = 80
 */
-          
         acc0 = outputColor + (input -> color[plane][row - 1][col - 1] * arrayOfGetCalls[0]);
         acc1 = outputColor + (input -> color[plane][row + 0][col - 1] * arrayOfGetCalls[1]);
         acc2 = outputColor + (input -> color[plane][row + 1][col - 1] * arrayOfGetCalls[2]);
@@ -224,6 +232,8 @@ By storing the get() function calls in an array, the values can be stored in the
         acc8 = outputColor + (input -> color[plane][row + 1][col + 1] * arrayOfGetCalls[8]);
           
         outputColor = acc0 + acc1 + acc2 + acc3 + acc4 + acc5 + acc6 + acc7 + acc8;
+        
+          
           
 //reduce function calls. Boats score = 63, Blocks score = 60
         //output -> color[plane][row][col] = output -> color[plane][row][col] / filter -> getDivisor();
